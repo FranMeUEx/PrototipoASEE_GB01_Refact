@@ -1,49 +1,45 @@
-package es.unex.prototipoasee.ui.pendings;
+package es.unex.prototipoasee.fragments;
 
-import android.content.Context;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
-import java.util.List;
 
-import es.unex.prototipoasee.API.FilmsNetworkDataSource;
-import es.unex.prototipoasee.repository.Repository;
+import es.unex.prototipoasee.AppContainer;
+import es.unex.prototipoasee.MyApplication;
 import es.unex.prototipoasee.R;
 import es.unex.prototipoasee.adapters.FilmListAdapter;
-import es.unex.prototipoasee.model.Films;
-import es.unex.prototipoasee.room.FilmsDatabase;
+import es.unex.prototipoasee.viewModels.PendingsFragmentViewModel;
 
 public class PendingsFragment extends Fragment {
 
-    private List<Films> filmList = new ArrayList<>();
     private FilmListAdapter filmListAdapter;
 
-    private Repository repository;
+    // Referencia al ViewModel
+    PendingsFragmentViewModel pendingsFragmentViewModel;
+
 
     public PendingsFragment() {
         // Required empty public constructor
     }
 
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-    }
-
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
 
-        FilmsDatabase db = FilmsDatabase.getInstance(getContext());
-        repository = Repository.getInstance(db.filmDAO(), db.favoritesDAO(), db.pendingsDAO(), db.commentDAO(), db.ratingDAO(), db.genreDAO(), db.filmsGenresListDAO(), FilmsNetworkDataSource.getInstance());
+        // Para el ViewModel
+        AppContainer appContainer = ((MyApplication) getActivity().getApplication()).appContainer;
+        pendingsFragmentViewModel = new ViewModelProvider(this, (ViewModelProvider.Factory) appContainer.factory).get(PendingsFragmentViewModel.class);
 
         View v = inflater.inflate(R.layout.fragment_pendings, container, false);
-        filmListAdapter = new FilmListAdapter(new ArrayList<>(repository.getUserPendingsFilms().values()),R.layout.pendings_item_list_content, getContext());
+        filmListAdapter = new FilmListAdapter(new ArrayList<>(pendingsFragmentViewModel.getUserPendingFilms()),R.layout.pendings_item_list_content, getContext());
 
         View recyclerView = v.findViewById(R.id.fragment_pendings);
         assert recyclerView != null;
@@ -59,12 +55,8 @@ public class PendingsFragment extends Fragment {
 
     @Override
     public void onResume() {
-        getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                filmListAdapter.swap(new ArrayList<>(repository.getUserPendingsFilms().values()));
-            }
-        });
+        Log.i("PRUEBA", "En onResume()");
+        getActivity().runOnUiThread(() -> filmListAdapter.swap(new ArrayList<>(pendingsFragmentViewModel.getUserPendingFilms())));
         super.onResume();
     }
 }

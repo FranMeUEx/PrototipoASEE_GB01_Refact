@@ -11,7 +11,6 @@ import androidx.room.ForeignKey;
 public class Favorites {
 
     // Atributos Favorites
-    @NonNull
     @ColumnInfo(name="filmID")
     private int filmID;
     @NonNull

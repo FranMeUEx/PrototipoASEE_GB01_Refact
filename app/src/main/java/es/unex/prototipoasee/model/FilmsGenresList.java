@@ -1,9 +1,7 @@
 package es.unex.prototipoasee.model;
 
-
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
-import androidx.room.ForeignKey;
 
 @Entity(tableName = "FilmsGenresList",primaryKeys = {"filmID","genreID"})
 public class FilmsGenresList {
@@ -11,6 +9,16 @@ public class FilmsGenresList {
     private int filmID;
     @ColumnInfo(name="genreID")
     private int genreID;
+
+    public FilmsGenresList() {
+
+    }
+
+    // Constructor parametrizado para los test
+    public FilmsGenresList(int filmid, int genreid) {
+        filmID = filmid;
+        genreID = genreid;
+    }
 
     public int getFilmID() {
         return filmID;

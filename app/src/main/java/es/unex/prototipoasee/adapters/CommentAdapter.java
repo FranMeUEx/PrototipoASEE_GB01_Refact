@@ -2,7 +2,6 @@ package es.unex.prototipoasee.adapters;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -41,12 +40,7 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.commentA
         holder.user.setText(commentList.get(position).getUsername());
         holder.text.setText(commentList.get(position).getText());
         if (commentList.get(position).getUsername().equals(userLogged)){
-            holder.deleteCommentButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    deleteCommentInterface.deleteComment(commentList.get(position), CommentAdapter.this);
-                }
-            });
+            holder.deleteCommentButton.setOnClickListener(view -> deleteCommentInterface.deleteComment(commentList.get(position)));
         } else {
             holder.deleteCommentButton.setEnabled(false);
             holder.deleteCommentButton.setVisibility(View.INVISIBLE);
@@ -67,9 +61,9 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.commentA
 
         commentAdapterViewHolder(View view) {
             super(view);
-            user = (TextView) view.findViewById(R.id.tvUsernameComment);
-            text = (TextView) view.findViewById(R.id.tvCommentText);
-            deleteCommentButton = (ImageButton) view.findViewById(R.id.ibCommentDelete);
+            user = view.findViewById(R.id.tvUsernameComment);
+            text = view.findViewById(R.id.tvCommentText);
+            deleteCommentButton = view.findViewById(R.id.ibCommentDelete);
         }
     }
 
@@ -79,7 +73,7 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.commentA
     }
 
     public interface DeleteCommentInterface {
-        void deleteComment(Comments comment, CommentAdapter commentAdapter);
+        void deleteComment(Comments comment);
     }
 }
 

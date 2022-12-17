@@ -52,14 +52,11 @@ public class UsersRepository {
      * Recupera todos los usuarios almacenados en la BD y los carga en los HashMap de consulta
      */
     public void getAllUsers() {
-        AppExecutors.getInstance().diskIO().execute(new Runnable() {
-            @Override
-            public void run() {
-                List<User> users = userDAO.getAllUsers();
-                for (User user: users) {
-                    usersInDBByUsername.put(user.getUsername(), user);
-                    usersInDBByEmail.put(user.getEmail(), user);
-                }
+        AppExecutors.getInstance().diskIO().execute(() -> {
+            List<User> users = userDAO.getAllUsers();
+            for (User user: users) {
+                usersInDBByUsername.put(user.getUsername(), user);
+                usersInDBByEmail.put(user.getEmail(), user);
             }
         });
     }
@@ -87,12 +84,7 @@ public class UsersRepository {
     public void registerNewUser(User user) {
         usersInDBByUsername.put(user.getUsername(), user);
         usersInDBByEmail.put(user.getEmail(), user);
-        mExecutors.diskIO().execute(new Runnable() {
-            @Override
-            public void run() {
-                userDAO.insertUser(user);
-            }
-        });
+        mExecutors.diskIO().execute(() -> userDAO.insertUser(user));
     }
 
     /**
@@ -100,14 +92,11 @@ public class UsersRepository {
      * @param username Nombre del usuario que se desea eliminar
      */
     public void deleteUser(String username) {
-        mExecutors.diskIO().execute(new Runnable() {
-            @Override
-            public void run() {
-                User user = userDAO.getUser(username);
-                usersInDBByUsername.remove(username);
-                usersInDBByEmail.remove(user.getEmail());
-                userDAO.deleteUserByID(username);
-            }
+        mExecutors.diskIO().execute(() -> {
+            User user = userDAO.getUser(username);
+            usersInDBByUsername.remove(username);
+            usersInDBByEmail.remove(user.getEmail());
+            userDAO.deleteUserByID(username);
         });
     }
 

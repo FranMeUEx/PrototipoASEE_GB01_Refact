@@ -16,7 +16,6 @@ import java.util.Map;
 import java.util.Set;
 
 import es.unex.prototipoasee.API.FilmsNetworkDataSource;
-import es.unex.prototipoasee.R;
 import es.unex.prototipoasee.model.Comments;
 import es.unex.prototipoasee.model.Favorites;
 import es.unex.prototipoasee.model.Films;
@@ -87,37 +86,33 @@ public class Repository {
         LiveData<Genre[]> genresNetworkData = filmsNetworkDataSource.getCurrentGenres();
         // As long as the repository exists, observe the network LiveData.
         // If that LiveData changes, update the database.
-        filmsNetworkData.observeForever(newFilmsFromNetwork -> {
-            mExecutors.diskIO().execute(() -> {
+        filmsNetworkData.observeForever(newFilmsFromNetwork -> mExecutors.diskIO().execute(() -> {
 
-                // Como se añade el rating a las películas cargadas de la API, aquellas que tengan votos no son reemplazadas en la BD
-                HashMap<Integer,Films> ratedFilms = new HashMap<>();
-                for (Films i : filmDAO.getRatedFilms()) ratedFilms.put(i.getId(),i);
-                HashMap<Integer,Films> filmsFetched = new HashMap<>();
-                for(Films i : newFilmsFromNetwork) filmsFetched.put(i.getId(), i);
-                for (Map.Entry<Integer, Films> entry : ratedFilms.entrySet()) {
-                    filmsFetched.remove(entry.getKey());
-                }
-                List<Films> notRatedFilmsList = new ArrayList<>(filmsFetched.values());
+            // Como se añade el rating a las películas cargadas de la API, aquellas que tengan votos no son reemplazadas en la BD
+            HashMap<Integer,Films> ratedFilms = new HashMap<>();
+            for (Films i : filmDAO.getRatedFilms()) ratedFilms.put(i.getId(),i);
+            HashMap<Integer,Films> filmsFetched = new HashMap<>();
+            for(Films i : newFilmsFromNetwork) filmsFetched.put(i.getId(), i);
+            for (Map.Entry<Integer, Films> entry : ratedFilms.entrySet()) {
+                filmsFetched.remove(entry.getKey());
+            }
+            List<Films> notRatedFilmsList = new ArrayList<>(filmsFetched.values());
 
-                // Insert our new films into local database
-                filmDAO.insertAllFilms(notRatedFilmsList);
-                Log.d(LOG_TAG, "Nuevas películas insertadas en Room");
-                // Se actualiza la tabla que contiene los ID de las películas junto a los ID de sus géneros asociados
-                for (Films film : newFilmsFromNetwork) {
-                    for (Integer id : film.getGenreIds()) {
-                        filmsGenresListDAO.insertFilmGenre(film.getId(), id);
-                    }
+            // Insert our new films into local database
+            filmDAO.insertAllFilms(notRatedFilmsList);
+            Log.d(LOG_TAG, "Nuevas películas insertadas en Room");
+            // Se actualiza la tabla que contiene los ID de las películas junto a los ID de sus géneros asociados
+            for (Films film : newFilmsFromNetwork) {
+                for (Integer id : film.getGenreIds()) {
+                    filmsGenresListDAO.insertFilmGenre(film.getId(), id);
                 }
-            });
-        });
-        genresNetworkData.observeForever(newGenresFromNetwork -> {
-            mExecutors.diskIO().execute(() -> {
-                // Insert our new genres into local database
-                genreDAO.insertAllGenres(Arrays.asList(newGenresFromNetwork));
-                Log.d(LOG_TAG, "Nuevos géneros insertados en Room");
-            });
-        });
+            }
+        }));
+        genresNetworkData.observeForever(newGenresFromNetwork -> mExecutors.diskIO().execute(() -> {
+            // Insert our new genres into local database
+            genreDAO.insertAllGenres(Arrays.asList(newGenresFromNetwork));
+            Log.d(LOG_TAG, "Nuevos géneros insertados en Room");
+        }));
         doFetchFilmsAndGenres();
     }
 
@@ -153,26 +148,18 @@ public class Repository {
     }
 
     public LiveData<List<Films>> getFilmsByGenre() {
-        return Transformations.switchMap(genreFilterLiveData, new Function<Integer, LiveData<List<Films>>>() {
-            @Override
-            public LiveData<List<Films>> apply(Integer input) {
-                return filmDAO.getFilmsByGenres(input);
-            }
-        });
+        return Transformations.switchMap(genreFilterLiveData, input -> filmDAO.getFilmsByGenres(input));
     }
 
     public void getFilmsByTitle(String input) {
-        mExecutors.diskIO().execute(new Runnable() {
-            @Override
-            public void run() {
-                List<Films> queryResult = new ArrayList<>();
-                for (Films film : filmDAO.getAllFilmsAsList()) {
-                    if (LevenshteinSearch.distance(film.getTitle().toLowerCase(), input.toLowerCase()) <= 3 || film.getTitle().toLowerCase().contains(input.toLowerCase())) {
-                        queryResult.add(film);
-                    }
+        mExecutors.diskIO().execute(() -> {
+            List<Films> queryResult = new ArrayList<>();
+            for (Films film : filmDAO.getAllFilmsAsList()) {
+                if (LevenshteinSearch.distance(film.getTitle().toLowerCase(), input.toLowerCase()) <= 3 || film.getTitle().toLowerCase().contains(input.toLowerCase())) {
+                    queryResult.add(film);
                 }
-                titleFilterLiveData.postValue(queryResult);
             }
+            titleFilterLiveData.postValue(queryResult);
         });
     }
 
@@ -195,17 +182,14 @@ public class Repository {
     public void getUserFilmData(String username) {
         this.username = username;
         resetUserFilmData();
-        mExecutors.diskIO().execute(new Runnable() {
-            @Override
-            public void run() {
-                for (Films film : filmDAO.getFavoritesFilms(username)) {
-                    userFavoriteFilms.put(film.getId(), film);
-                }
-                for (Films film : filmDAO.getPendingsFilms(username)) {
-                    userPendingFilms.put(film.getId(), film);
-                }
-                userRatedFilms.addAll(ratingDAO.getRatingIDs(username));
+        mExecutors.diskIO().execute(() -> {
+            for (Films film : filmDAO.getFavoritesFilms(username)) {
+                userFavoriteFilms.put(film.getId(), film);
             }
+            for (Films film : filmDAO.getPendingsFilms(username)) {
+                userPendingFilms.put(film.getId(), film);
+            }
+            userRatedFilms.addAll(ratingDAO.getRatingIDs(username));
         });
     }
 
@@ -217,7 +201,7 @@ public class Repository {
     private void resetUserFilmData() {
         userFavoriteFilms.clear();
         userPendingFilms.clear();
-        getUserRatedFilms().clear();
+        userRatedFilms.clear();
     }
 
     /**
@@ -255,12 +239,7 @@ public class Repository {
      */
     public void addUserFavoriteFilm(Films film) {
         userFavoriteFilms.put(film.getId(), film);
-        mExecutors.diskIO().execute(new Runnable() {
-            @Override
-            public void run() {
-                favoritesDAO.insertFavorites(new Favorites(film.getId(), username));
-            }
-        });
+        mExecutors.diskIO().execute(() -> favoritesDAO.insertFavorites(new Favorites(film.getId(), username)));
     }
 
     /**
@@ -271,12 +250,7 @@ public class Repository {
      */
     public void addUserPendingFilm(Films film) {
         userPendingFilms.put(film.getId(), film);
-        mExecutors.diskIO().execute(new Runnable() {
-            @Override
-            public void run() {
-                pendingsDAO.insertPendings(new Pendings(film.getId(), username));
-            }
-        });
+        mExecutors.diskIO().execute(() -> pendingsDAO.insertPendings(new Pendings(film.getId(), username)));
     }
 
     /**
@@ -287,12 +261,9 @@ public class Repository {
      */
     public void addUserRatedFilm(Films film, Integer rating) {
         userRatedFilms.add(film.getId());
-        mExecutors.diskIO().execute(new Runnable() {
-            @Override
-            public void run() {
-                ratingDAO.insertRating(new Rating(film.getId(), username, rating));
-                filmDAO.updateFilm(film);
-            }
+        mExecutors.diskIO().execute(() -> {
+            ratingDAO.insertRating(new Rating(film.getId(), username, rating));
+            filmDAO.updateFilm(film);
         });
     }
 
@@ -304,12 +275,7 @@ public class Repository {
      */
     public void removeUserFavoriteFilm(Films film) {
         userFavoriteFilms.remove(film.getId());
-        mExecutors.diskIO().execute(new Runnable() {
-            @Override
-            public void run() {
-                favoritesDAO.deleteFavorites(new Favorites(film.getId(), username));
-            }
-        });
+        mExecutors.diskIO().execute(() -> favoritesDAO.deleteFavorites(new Favorites(film.getId(), username)));
     }
 
     /**
@@ -320,12 +286,7 @@ public class Repository {
      */
     public void removeUserPedingFilm(Films film) {
         userPendingFilms.remove(film.getId());
-        mExecutors.diskIO().execute(new Runnable() {
-            @Override
-            public void run() {
-                pendingsDAO.deletePendings(new Pendings(film.getId(), username));
-            }
-        });
+        mExecutors.diskIO().execute(() -> pendingsDAO.deletePendings(new Pendings(film.getId(), username)));
     }
 
     /**
@@ -337,31 +298,18 @@ public class Repository {
     }
 
     public void deleteComment(Comments comment) {
-        mExecutors.diskIO().execute(new Runnable() {
-            @Override
-            public void run() {
-                commentDAO.deleteComment(comment);
-            }
-        });
+        mExecutors.diskIO().execute(() -> commentDAO.deleteComment(comment));
     }
 
     public void addComment(Comments comment) {
-        mExecutors.diskIO().execute(new Runnable() {
-            @Override
-            public void run() {
-                commentDAO.addComment(comment);
-            }
-        });
+        mExecutors.diskIO().execute(() -> commentDAO.addComment(comment));
     }
 
     public Films getFilm(Films film) {
-        mExecutors.diskIO().execute(new Runnable() {
-            @Override
-            public void run() {
-                synchronized (lock) {
-                    mFilm = filmDAO.getFilm(film.getId());
-                    lock.notifyAll();
-                }
+        mExecutors.diskIO().execute(() -> {
+            synchronized (lock) {
+                mFilm = filmDAO.getFilm(film.getId());
+                lock.notifyAll();
             }
         });
         synchronized (lock) {
@@ -375,13 +323,10 @@ public class Repository {
     }
 
     public List<String> getFilmGenres(Films film) {
-        mExecutors.diskIO().execute(new Runnable() {
-            @Override
-            public void run() {
-                synchronized (lock) {
-                    genreList = filmsGenresListDAO.getAllFilmsGenresNames(film.getId());
-                    lock.notify();
-                }
+        mExecutors.diskIO().execute(() -> {
+            synchronized (lock) {
+                genreList = filmsGenresListDAO.getAllFilmsGenresNames(film.getId());
+                lock.notify();
             }
         });
         synchronized (lock) {

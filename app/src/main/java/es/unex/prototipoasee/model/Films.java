@@ -1,7 +1,5 @@
 package es.unex.prototipoasee.model;
 
-import android.media.audiofx.Equalizer;
-
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.Ignore;
@@ -28,6 +26,26 @@ public class Films implements Serializable {
     public Films() {
         totalRatingMovieCheck = 0;
         totalVotesMovieCheck = 0;
+    }
+
+    // Constructor parametrizado para los test
+    public Films(Boolean fadult, String bdPath, String origlangage, Double pop, String origTitle, Boolean fvideo, Integer vote, Integer fid, String ftitle, List<Integer> list, String poster, String foverview, String date, Double voteAver, Integer totalVote, Integer totalRating) {
+        adult = fadult;
+        backdropPath = bdPath;
+        originalLanguage = origlangage;
+        popularity = pop;
+        originalTitle = origTitle;
+        video = fvideo;
+        voteCount = vote;
+        id = fid;
+        title = ftitle;
+        genreIds = list;
+        posterPath = poster;
+        overview = foverview;
+        releaseDate = date;
+        voteAverage = voteAver;
+        totalVotesMovieCheck = totalVote;
+        totalRatingMovieCheck = totalRating;
     }
 
     // Atributos de la clase Film

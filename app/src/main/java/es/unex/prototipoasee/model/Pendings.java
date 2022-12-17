@@ -10,16 +10,11 @@ import androidx.room.ForeignKey;
 public class Pendings {
 
     // Atrbutos pendientes
-    @NonNull
     @ColumnInfo(name="filmID")
     private int filmID;
     @NonNull
     @ColumnInfo(name="username")
     private String username;
-
-    public Pendings(){
-
-    }
 
     public Pendings(int filmID, @NonNull String username) {
         this.filmID = filmID;

@@ -6,8 +6,6 @@ import java.util.List;
 
 import es.unex.prototipoasee.model.Films;
 import es.unex.prototipoasee.model.FilmsPages;
-import es.unex.prototipoasee.model.Genre;
-import es.unex.prototipoasee.model.GenresList;
 import es.unex.prototipoasee.sharedInterfaces.OnFilmsLoadedListener;
 import es.unex.prototipoasee.support.AppExecutors;
 import retrofit2.Call;
@@ -48,12 +46,7 @@ public class FilmsNetworkLoaderRunnable implements Runnable{
 
                 assert response.body() != null;
                 List<Films> films = response.body().getResults();
-                AppExecutors.getInstance().mainThread().execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        onFilmsLoadedListener.onFilmsLoaded(films);
-                    }
-                });
+                AppExecutors.getInstance().mainThread().execute(() -> onFilmsLoadedListener.onFilmsLoaded(films));
             }
 
             @Override
@@ -63,74 +56,4 @@ public class FilmsNetworkLoaderRunnable implements Runnable{
             }
         });
     }
-
-//    public void getFilmsGenres(){
-//        Retrofit retrofit = new Retrofit.Builder()
-//                .baseUrl(URLBASE)
-//                .addConverterFactory(GsonConverterFactory.create())
-//                .build();
-//        FilmAPI api = retrofit.create(FilmAPI.class);
-//        Call<FilmsPages> call = api.getFilms(APIKEY,LANGUAGE);
-//
-//        call.enqueue(new Callback<FilmsPages>() {
-//            @Override
-//            public void onResponse(Call<FilmsPages> call, Response<FilmsPages> response) {
-//                if(!response.isSuccessful()){
-//                    Log.i(TAG,"CODE: "+response.code());
-//                }
-//
-//                assert response.body() != null;
-//                List<Films> fLists = response.body().getResults();
-//                AppExecutors.getInstance().mainThread().execute(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        onFilmsLoadedListener.onFilmGenresLoaded(fLists);
-//                    }
-//                });
-//                //putFilmsGenresListOnDatabase(fLists);
-//            }
-//
-//            @Override
-//            public void onFailure(Call<FilmsPages> call, Throwable t) {
-//                Log.i(TAG,"ERROR: LA APLICACIÓN FALLÓ AL REALIZAR LA CONSULTA");
-//                t.printStackTrace();
-//            }
-//        });
-//    }
-
-//    public void putFilmsOnDatabase(List<Films> list) {
-//        AppExecutors.getInstance().diskIO().execute(new Runnable() {
-//            @Override
-//            public void run() {
-//                FilmsDatabase db = FilmsDatabase.getInstance(LoginActivity.this);
-//                db.filmDAO().insertAllFilms(list);
-//            }
-//        });
-//    }
-//
-//    public void putGenresOnDatabase(List<Genre> list) {
-//        AppExecutors.getInstance().diskIO().execute(new Runnable() {
-//            @Override
-//            public void run() {
-//                FilmsDatabase db = FilmsDatabase.getInstance(this);
-//                db.genreDAO().insertAllGenres(list);
-//            }
-//        });
-//    }
-//
-//    public void putFilmsGenresListOnDatabase(List<Films> list) {
-//        AppExecutors.getInstance().diskIO().execute(new Runnable() {
-//            @Override
-//            public void run() {
-//                FilmsDatabase db = FilmsDatabase.getInstance(LoginActivity.this);
-//                for(Films films: list) {
-//                    List<Integer> ids = films.getGenreIds();
-//                    for (Integer id : ids) {
-//                        db.filmsGenresListDAO().insertFilmGenre(films.getId(), id);
-//                    }
-//                }
-//            }
-//        });
-//    }
-
 }

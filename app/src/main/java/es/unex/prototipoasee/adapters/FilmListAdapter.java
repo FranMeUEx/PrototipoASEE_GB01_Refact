@@ -20,7 +20,7 @@ import java.util.List;
 import es.unex.prototipoasee.R;
 import es.unex.prototipoasee.model.Films;
 
-public class FilmListAdapter extends RecyclerView.Adapter<FilmListAdapter.filmsListAdapterViewHolder>{
+public class FilmListAdapter extends RecyclerView.Adapter<FilmListAdapter.FilmsListAdapterViewHolder>{
     private List<Films> filmList;
     private final FilmAdapter.FilmListener filmListener;
     private final FilmListAdapter.ActionButtonListener actionButtonListener;
@@ -40,34 +40,26 @@ public class FilmListAdapter extends RecyclerView.Adapter<FilmListAdapter.filmsL
 
     @NonNull
     @Override
-    public FilmListAdapter.filmsListAdapterViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+    public FilmListAdapter.FilmsListAdapterViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext()).inflate(this.listItemLayout, parent,false);
-        return new FilmListAdapter.filmsListAdapterViewHolder(view);
+        return new FilmListAdapter.FilmsListAdapterViewHolder(view);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull FilmListAdapter.filmsListAdapterViewHolder holder, @SuppressLint("RecyclerView") int position) {
+    public void onBindViewHolder(@NonNull FilmListAdapter.FilmsListAdapterViewHolder holder, @SuppressLint("RecyclerView") int position) {
         holder.title.setText(filmList.get(position).getTitle());
         Glide.with(holder.image.getContext()).load("https://image.tmdb.org/t/p/original/"+filmList.get(position).getPosterPath()).into(holder.image);
         holder.date.setText(filmList.get(position).getReleaseDate().split("-")[0]);
-        holder.actionButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if(listItemLayout == R.layout.favorites_item_list_content){
-                    actionButtonListener.onFavButtonPressed(filmList.get(position), FilmListAdapter.this);
-                    Toast.makeText(view.getContext(), R.string.toggle_favorites_remove, Toast.LENGTH_SHORT).show();
-                } else {
-                    actionButtonListener.onPendingButtonPressed(filmList.get(position), FilmListAdapter.this);
-                    Toast.makeText(view.getContext(), R.string.toggle_pending_remove, Toast.LENGTH_SHORT).show();
-                }
+        holder.actionButton.setOnClickListener(view -> {
+            if(listItemLayout == R.layout.favorites_item_list_content){
+                actionButtonListener.onFavButtonPressed(filmList.get(position), FilmListAdapter.this);
+                Toast.makeText(view.getContext(), R.string.toggle_favorites_remove, Toast.LENGTH_SHORT).show();
+            } else {
+                actionButtonListener.onPendingButtonPressed(filmList.get(position), FilmListAdapter.this);
+                Toast.makeText(view.getContext(), R.string.toggle_pending_remove, Toast.LENGTH_SHORT).show();
             }
         });
-        holder.itemView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                filmListener.onFilmSelected(filmList.get(position));
-            }
-        });
+        holder.itemView.setOnClickListener(view -> filmListener.onFilmSelected(filmList.get(position)));
     }
 
     @Override
@@ -75,18 +67,18 @@ public class FilmListAdapter extends RecyclerView.Adapter<FilmListAdapter.filmsL
         return filmList.size();
     }
 
-    public static class filmsListAdapterViewHolder extends RecyclerView.ViewHolder {
+    public static class FilmsListAdapterViewHolder extends RecyclerView.ViewHolder {
         final TextView title;
         final ImageView image;
         final TextView date;
         final ImageButton actionButton;
 
-        filmsListAdapterViewHolder(View view) {
+        FilmsListAdapterViewHolder(View view) {
             super(view);
-            title = (TextView) view.findViewById(R.id.tvMovieTitle);
-            image = (ImageView) view.findViewById(R.id.ivMoviePoster);
-            date = (TextView) view.findViewById(R.id.tvMovieDate);
-            actionButton = (ImageButton) view.findViewById(R.id.ibAction);
+            title = view.findViewById(R.id.tvMovieTitle);
+            image = view.findViewById(R.id.ivMoviePoster);
+            date = view.findViewById(R.id.tvMovieDate);
+            actionButton = view.findViewById(R.id.ibAction);
         }
     }
 

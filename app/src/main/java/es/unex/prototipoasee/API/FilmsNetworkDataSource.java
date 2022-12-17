@@ -5,11 +5,8 @@ import android.util.Log;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
-import java.util.List;
-
 import es.unex.prototipoasee.model.Films;
 import es.unex.prototipoasee.model.Genre;
-import es.unex.prototipoasee.sharedInterfaces.OnFilmsLoadedListener;
 import es.unex.prototipoasee.support.AppExecutors;
 
 public class FilmsNetworkDataSource {

@@ -1,30 +1,22 @@
 package es.unex.prototipoasee.activities;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.lifecycle.LiveData;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 
-import android.content.Context;
-import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.widget.Toast;
 
 import com.google.android.material.tabs.TabLayout;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import es.unex.prototipoasee.API.FilmsNetworkDataSource;
-import es.unex.prototipoasee.model.Genre;
-import es.unex.prototipoasee.repository.Repository;
-import es.unex.prototipoasee.support.AppExecutors;
+import es.unex.prototipoasee.AppContainer;
+import es.unex.prototipoasee.MyApplication;
 import es.unex.prototipoasee.R;
 import es.unex.prototipoasee.adapters.CommentAdapter;
 import es.unex.prototipoasee.adapters.TabsViewPagerAdapter;
 import es.unex.prototipoasee.sharedInterfaces.ItemDetailInterface;
 import es.unex.prototipoasee.model.Comments;
 import es.unex.prototipoasee.model.Films;
-import es.unex.prototipoasee.room.FilmsDatabase;
+import es.unex.prototipoasee.viewModels.ItemDetailActivityViewModel;
 
 public class ItemDetailActivity extends AppCompatActivity implements ItemDetailInterface, CommentAdapter.DeleteCommentInterface {
 
@@ -36,7 +28,8 @@ public class ItemDetailActivity extends AppCompatActivity implements ItemDetailI
     //private LiveData<Films> film;
     private Films film;
 
-    private Repository repository;
+    // Referencia al ViewModel
+    ItemDetailActivityViewModel itemDetailActivityViewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,13 +40,14 @@ public class ItemDetailActivity extends AppCompatActivity implements ItemDetailI
         tabLayout = findViewById(R.id.tlDetail);
         viewPager2 = findViewById(R.id.vpDetail);
 
-        FilmsDatabase db = FilmsDatabase.getInstance(this);
-        repository = Repository.getInstance(db.filmDAO(), db.favoritesDAO(), db.pendingsDAO(), db.commentDAO(), db.ratingDAO(), db.genreDAO(), db.filmsGenresListDAO(), FilmsNetworkDataSource.getInstance());
+        // Para el ViewModel
+        AppContainer appContainer = ((MyApplication) getApplication()).appContainer;
+        itemDetailActivityViewModel = new ViewModelProvider(this, (ViewModelProvider.Factory) appContainer.factory).get(ItemDetailActivityViewModel.class);
 
         // Se obtiene la película de la que se quiere mostrar información
         film = (Films) getIntent().getSerializableExtra("FILM");
 
-        repository.getFilm(film);
+        itemDetailActivityViewModel.getFilm(film);
 
         viewPager2.setAdapter(new TabsViewPagerAdapter(this.getSupportFragmentManager(), getLifecycle()));
         viewPager2.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
@@ -90,7 +84,7 @@ public class ItemDetailActivity extends AppCompatActivity implements ItemDetailI
     }
 
     @Override
-    public void deleteComment(Comments comment, CommentAdapter commentAdapter) {
-        repository.deleteComment(comment);
+    public void deleteComment(Comments comment) {
+        itemDetailActivityViewModel.deleteComment(comment);
     }
 }

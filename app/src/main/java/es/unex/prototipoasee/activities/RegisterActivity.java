@@ -1,29 +1,20 @@
 package es.unex.prototipoasee.activities;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.text.TextUtils;
-import android.util.Patterns;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 
 import com.google.android.material.snackbar.Snackbar;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import es.unex.prototipoasee.API.FilmsNetworkDataSource;
-import es.unex.prototipoasee.repository.Repository;
-import es.unex.prototipoasee.repository.UsersRepository;
-import es.unex.prototipoasee.support.AppExecutors;
+import es.unex.prototipoasee.AppContainer;
+import es.unex.prototipoasee.MyApplication;
 import es.unex.prototipoasee.R;
-import es.unex.prototipoasee.model.User;
-import es.unex.prototipoasee.room.FilmsDatabase;
+import es.unex.prototipoasee.viewModels.RegisterActivityViewModel;
 
 public class RegisterActivity extends AppCompatActivity {
 
@@ -34,11 +25,8 @@ public class RegisterActivity extends AppCompatActivity {
     private EditText etRepeatPasswordRegister;
     private Button bRegister;
 
-    // Campo para trabajar con el Repositorio de Usuarios
-    UsersRepository usersRepository;
-
-    // Intancia de la base de datos requerida para instanciar y trabajar con el anterior Repositorio de Usuarios
-    FilmsDatabase db = FilmsDatabase.getInstance(this);
+    // Referencia al ViewModel
+    RegisterActivityViewModel registerActivityViewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,16 +36,14 @@ public class RegisterActivity extends AppCompatActivity {
 
         getViewsReferences();
 
-        // Acceso a datos almacenados a través del Repositorio de Usuarios
-        usersRepository = UsersRepository.getInstance(db.userDAO());
+        // Para el ViewModel
+        AppContainer appContainer = ((MyApplication) getApplication()).appContainer;
+        registerActivityViewModel = new ViewModelProvider(this, (ViewModelProvider.Factory) appContainer.factory).get(RegisterActivityViewModel.class);
 
-        bRegister.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                // Se procede a registrar al usuario
-                bRegister.setEnabled(false);
-                registerUserIfValid(view);
-            }
+        bRegister.setOnClickListener(view -> {
+            // Se procede a registrar al usuario
+            bRegister.setEnabled(false);
+            registerUserIfValid(view);
         });
     }
 
@@ -73,13 +59,17 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
     /**
-     * Comprueba si las credenciales son válidas. En caso afirmativo, se inserta el nuevo usuario en la BD y se devuelve el control a LoginActivity
+     * Comprueba si las credenciales son válidas. En caso afirmativo, se inserta el nuevo usuario en la BD y se devuelve el control a LoginActivity.
      */
     private void registerUserIfValid(View view) {
+        String username = etUsernameRegister.getText().toString();
+        String email = etEmailRegister.getText().toString();
+        String password = etPasswordRegister.getText().toString();
+        String repeatedPassword = etRepeatPasswordRegister.getText().toString();
         // Si los campos introducidos son válidos, se inserta el usuario en la BD y se devuelve el nombre de usuario a la actividad LoginActivity
-        if (checkFields(view)) {
+        if (checkFields(view, username, email, password, repeatedPassword)) {
             // Se da de alta al usuario en el sistema (se añade a la BD)
-            insertUserInDB();
+            registerActivityViewModel.insertUserInDB(username, email, password);
             // Se devuelve el nombre de usuario a la actividad LoginActivity
             returnToLogin();
         } else {
@@ -88,133 +78,60 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
     /**
-     * Comprueba si el nombre de usuario introducido cumple con el patrón indicado.
-     * Retorna True si el nombre es válido o False en caso contrario.
+     * Realiza las comprobaciones del formato de cada uno de los campos requeridos para el registro. Adcionalmente, comprueba que las credenciales no
+     * existan ya en la BD.
+     * @param view Referencia a la vista para hacer uso de la Snackbar para informar al usuario de los inconvenientes encontrados.
+     * @param username Nombre de usuario que se quiere registrar.
+     * @param email Email de usuario que se quiere registrar.
+     * @param password Contraseña de usuario que se quiere registrar.
+     * @param repeatedPassword Repetición de la contraseña que se quiere registrar.
+     * @return True si las credenciales son válidas y no existen en la BD. False en caso contrario.
      */
-    private boolean usernameIsValid() {
-        Pattern pattern;
-        Matcher matcher;
-
-        // Un nombre de usuario válido debe contener al menos una letra y su longitud debe ser mayor o igual que 6 y menor o igual que 16. No se permiten espacios.
-        final String USERNAME_PATTERN = "^(?=.*[a-zA-Z])(?=\\S+$).{6,12}$";
-
-        pattern = Pattern.compile(USERNAME_PATTERN);
-        matcher = pattern.matcher(etUsernameRegister.getText().toString());
-
-        return matcher.matches();
-    }
-
-    /**
-     * Comprueba si el nombre de usuario introducido existe ya en la BD.
-     * Retorna True si ya existe o False en caso contrario.
-     * Se hace uso de los mapas para ahorrar transacciones con la BD.
-     */
-    private boolean usernameInDB() {
-        return usersRepository.getUsersByUsername().get(etUsernameRegister.getText().toString()) != null;
-    }
-
-    /**
-     * Comprueba si el correo electrónico introducido cumple con el patrón indicado.
-     * Retorna True si es válido o False en caso contrario.
-     */
-    private boolean emailIsValid() {
-        return (!TextUtils.isEmpty(etEmailRegister.getText().toString()) && Patterns.EMAIL_ADDRESS.matcher(etEmailRegister.getText().toString()).matches());
-    }
-
-    /**
-     * Comprueba si el correo electrónico introducido existe ya en la BD.
-     * Retorna True si ya existe o False en caso contrario.
-     * Se hace uso de los mapas para ahorrar transacciones con la BD.
-     */
-    private boolean emailInDB() {
-        return usersRepository.getUsersByEmail().get(etEmailRegister.getText().toString()) != null;
-    }
-
-    /**
-     * Comprueba si la contraseña introducida cumple con el patrón indicado.
-     * Retorna True si es válida o False en caso contrario.
-     */
-    private boolean passwordIsValid() {
-        Pattern pattern;
-        Matcher matcher;
-
-        // Una contraseña válida debe contener como mínimo un dígito, una letra minúscula y una letra mayúscula. Además, no se permiten espacios y la longitud debe ser mayor o igual que 6, pero menor o igual que 16
-        final String PASSWORD_PATTERN = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=\\S+$).{6,16}$";
-
-        pattern = Pattern.compile(PASSWORD_PATTERN);
-        matcher = pattern.matcher(etPasswordRegister.getText().toString());
-
-        return matcher.matches();
-    }
-
-    /**
-     * Comprueba si las dos constraseñas introducidas coinciden.
-     */
-    private boolean passwordCoincidence() {
-        return etPasswordRegister.getText().toString().equals(etRepeatPasswordRegister.getText().toString());
-    }
-
-    /**
-     * Realiza todas las comprobaciones definidas en los métodos anteriores. Para que el Registro sea efectivo, todas ellas deben cumplirse, caso en el que se
-     * retorna True. En caso contrario se retorna False.
-     */
-    private boolean checkFields(View view) {
+    private boolean checkFields(View view, String username, String email, String password, String repeatedPassword) {
         // Se comprueba cada opción en un IF independiente para no solapar los mensajes de la Snackbar
         // Además, una vez que una de las opciones no es correcta, el resto se obvian y no se comprueban
         // No se ha optado por IF anidados para mejorar la lectura del código. Para ello se para la ejecución del método con returns en cada uno de los IF.
 
         // Atributos para personalizar la Snackbar empleada al verificar los datos introducidos
-        int SNACKBAR_MAX_LINES = 10; // Número máximo de líneas a mostrar en la Snackbar
-        int SNACKBAR_TIME_LONG = 6000; // Duración larga en milisegundos de la Snackbar en pantalla
-        int SNACKBAR_TIME_SHORT = 3500; // Duración corta en milisegundos de la Snackbar en pantalla
+        int snackbarMaxLines = 10; // Número máximo de líneas a mostrar en la Snackbar
+        int snackbarTimeLong = 6000; // Duración larga en milisegundos de la Snackbar en pantalla
+        int snackbarTimeShort = 3500; // Duración corta en milisegundos de la Snackbar en pantalla
 
-        if (!usernameIsValid()) {
-            Snackbar.make(view, R.string.username_is_invalid, SNACKBAR_TIME_LONG)
-                    .setTextMaxLines(SNACKBAR_MAX_LINES).show();
+        if (!registerActivityViewModel.usernameIsValid(username)) {
+            Snackbar.make(view, R.string.username_is_invalid, snackbarTimeLong)
+                    .setTextMaxLines(snackbarMaxLines).show();
+            return false;
+        }
+        if (registerActivityViewModel.usernameInDB(username)) {
+            Snackbar.make(view, R.string.username_already_exists, snackbarTimeShort)
+                    .setTextMaxLines(snackbarMaxLines).show();
             return false;
         }
 
-        if (usernameInDB()) {
-            Snackbar.make(view, R.string.username_already_exists, SNACKBAR_TIME_SHORT)
-                    .setTextMaxLines(SNACKBAR_MAX_LINES).show();
+        if (registerActivityViewModel.emailInDB(email)) {
+            Snackbar.make(view, R.string.email_already_exists, snackbarTimeShort)
+                    .setTextMaxLines(snackbarMaxLines).show();
             return false;
         }
 
-        if (emailInDB()) {
-            Snackbar.make(view, R.string.email_already_exists, SNACKBAR_TIME_SHORT)
-                    .setTextMaxLines(SNACKBAR_MAX_LINES).show();
+        if (!registerActivityViewModel.emailIsValid(email)) {
+            Snackbar.make(view, R.string.email_is_invalid, snackbarTimeShort)
+                    .setTextMaxLines(snackbarMaxLines).show();
             return false;
         }
 
-        if (!emailIsValid()) {
-            Snackbar.make(view, R.string.email_is_invalid, SNACKBAR_TIME_SHORT)
-                    .setTextMaxLines(SNACKBAR_MAX_LINES).show();
+        if (!registerActivityViewModel.passwordIsValid(password)) {
+            Snackbar.make(view, R.string.password_is_invalid, snackbarTimeLong)
+                    .setTextMaxLines(snackbarMaxLines).show();
             return false;
         }
 
-        if (!passwordIsValid()) {
-            Snackbar.make(view, R.string.password_is_invalid, SNACKBAR_TIME_LONG)
-                    .setTextMaxLines(SNACKBAR_MAX_LINES).show();
-            return false;
-        }
-
-        if (!passwordCoincidence()) {
-            Snackbar.make(view, R.string.password_coincidence_missing, SNACKBAR_TIME_SHORT)
-                    .setTextMaxLines(SNACKBAR_MAX_LINES).show();
+        if (!registerActivityViewModel.passwordCoincidence(password, repeatedPassword)) {
+            Snackbar.make(view, R.string.password_coincidence_missing, snackbarTimeShort)
+                    .setTextMaxLines(snackbarMaxLines).show();
             return false;
         }
         return true;
-    }
-
-    /**
-     * Inserta un nuevo usuario en la BD con los datos obtenidos una vez validados.
-     */
-    private void insertUserInDB() {
-        String username = etUsernameRegister.getText().toString();
-        String email = etEmailRegister.getText().toString();
-        String password = etPasswordRegister.getText().toString();
-        User user = new User(username, email, password);
-        usersRepository.registerNewUser(user);
     }
 
     /**
@@ -226,5 +143,4 @@ public class RegisterActivity extends AppCompatActivity {
         setResult(RESULT_OK, intent);
         finish();
     }
-
 }

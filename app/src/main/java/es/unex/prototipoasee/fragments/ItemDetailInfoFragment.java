@@ -1,12 +1,12 @@
 package es.unex.prototipoasee.fragments;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 import android.view.LayoutInflater;
 import android.view.View;
@@ -18,16 +18,12 @@ import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import es.unex.prototipoasee.API.FilmsNetworkDataSource;
-import es.unex.prototipoasee.repository.Repository;
-import es.unex.prototipoasee.support.AppExecutors;
+import es.unex.prototipoasee.AppContainer;
+import es.unex.prototipoasee.MyApplication;
 import es.unex.prototipoasee.R;
 import es.unex.prototipoasee.sharedInterfaces.ItemDetailInterface;
 import es.unex.prototipoasee.model.Films;
-import es.unex.prototipoasee.room.FilmsDatabase;
+import es.unex.prototipoasee.viewModels.ItemDetailInfoFragmentViewModel;
 
 public class ItemDetailInfoFragment extends Fragment {
 
@@ -42,7 +38,8 @@ public class ItemDetailInfoFragment extends Fragment {
     private Button bToggleFavoriteDetail;
     private Button bTogglePendingDetail;
 
-    private Repository repository;
+    // Referencia al ViewModel
+    ItemDetailInfoFragmentViewModel itemDetailInfoFragmentViewModel;
 
     // Interfaz para comunicarse con la actividad ItemDetailActivity y obtener de ella la información básica de la película
     private ItemDetailInterface itemDetailInterface;
@@ -52,11 +49,6 @@ public class ItemDetailInfoFragment extends Fragment {
 
     public ItemDetailInfoFragment() {
         // Required empty public constructor
-    }
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
     }
 
     @Override
@@ -70,41 +62,36 @@ public class ItemDetailInfoFragment extends Fragment {
 
         getViewsReferences(view);
 
-        FilmsDatabase db = FilmsDatabase.getInstance(getContext());
-        repository = Repository.getInstance(db.filmDAO(), db.favoritesDAO(), db.pendingsDAO(), db.commentDAO(), db.ratingDAO(), db.genreDAO(), db.filmsGenresListDAO(), FilmsNetworkDataSource.getInstance());
+        // Para el ViewModel
+        AppContainer appContainer = ((MyApplication) getActivity().getApplication()).appContainer;
+        itemDetailInfoFragmentViewModel = new ViewModelProvider(this, (ViewModelProvider.Factory) appContainer.factory).get(ItemDetailInfoFragmentViewModel.class);
 
         // Se actualiza la IU con la información de la película recuperada en film
         updateUI();
 
         // Cuando se presiona en el botón de añadir/quitar de favoritos
-        bToggleFavoriteDetail.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if(filmInFavorites()){
-                    repository.removeUserFavoriteFilm(film);
-                    setFavButtonAdd();
-                    Toast.makeText(getActivity(), R.string.toggle_favorites_remove, Toast.LENGTH_SHORT).show();
-                } else {
-                    repository.addUserFavoriteFilm(film);
-                    setFavButtonRemove();
-                    Toast.makeText(getActivity(), R.string.toggle_favorites_add, Toast.LENGTH_SHORT).show();
-                }
+        bToggleFavoriteDetail.setOnClickListener(view1 -> {
+            if(itemDetailInfoFragmentViewModel.filmInFavorites(film)){
+                itemDetailInfoFragmentViewModel.removeFavoriteFilm(film);
+                setFavButtonAdd();
+                Toast.makeText(getActivity(), R.string.toggle_favorites_remove, Toast.LENGTH_SHORT).show();
+            } else {
+                itemDetailInfoFragmentViewModel.addFavoriteFilm(film);
+                setFavButtonRemove();
+                Toast.makeText(getActivity(), R.string.toggle_favorites_add, Toast.LENGTH_SHORT).show();
             }
         });
 
         // Cuando se presiona en el botón de añadir/quitar de pendientes
-        bTogglePendingDetail.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if(filmInPendings()){
-                    repository.removeUserPedingFilm(film);
-                    setPendingButtonAdd();
-                    Toast.makeText(getActivity(), R.string.toggle_pending_remove, Toast.LENGTH_SHORT).show();
-                } else {
-                    repository.addUserPendingFilm(film);
-                    setPendingButtonRemove();
-                    Toast.makeText(getActivity(), R.string.toggle_pending_add, Toast.LENGTH_SHORT).show();
-                }
+        bTogglePendingDetail.setOnClickListener(view12 -> {
+            if(itemDetailInfoFragmentViewModel.filmInPendings(film)){
+                itemDetailInfoFragmentViewModel.removePendingFilm(film);
+                setPendingButtonAdd();
+                Toast.makeText(getActivity(), R.string.toggle_pending_remove, Toast.LENGTH_SHORT).show();
+            } else {
+                itemDetailInfoFragmentViewModel.addPendingFilm(film);
+                setPendingButtonRemove();
+                Toast.makeText(getActivity(), R.string.toggle_pending_add, Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -131,32 +118,29 @@ public class ItemDetailInfoFragment extends Fragment {
      * Actualiza todas las vistas incluidas en este fragmento que reflejan información sobre la película
      */
     private void updateUI(){
-        getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                if(filmInFavorites()){
-                    setFavButtonRemove();
-                } else {
-                    setFavButtonAdd();
-                }
-                if(filmInPendings()){
-                    setPendingButtonRemove();
-                } else {
-                    setPendingButtonAdd();
-                }
-                Glide.with(getContext()).load("https://image.tmdb.org/t/p/original/"+film.getPosterPath()).into(ivMoviePosterDetail);
-                tvMovieTitleDetail.setText(film.getTitle());
-                tvReleaseDateValueDetail.setText(film.getReleaseDate());
-                tvRatingAPIDetail.setText(String.valueOf(film.getVoteAverage()));
-                tvSynopsisValueDetail.setText(film.getOverview());
-                if(film.getTotalVotesMovieCheck()!=0){
-                    tvRatingValueDetail.setText(String.valueOf(film.getTotalRatingMovieCheck()/film.getTotalVotesMovieCheck()));
-                }else{
-                    tvRatingValueDetail.setText(String.valueOf(0));
-                }
-                String genresAsString = String.join(" - ", repository.getFilmGenres(film));
-                tvMovieGenresValue.setText(genresAsString);
+        getActivity().runOnUiThread(() -> {
+            if(itemDetailInfoFragmentViewModel.filmInFavorites(film)){
+                setFavButtonRemove();
+            } else {
+                setFavButtonAdd();
             }
+            if(itemDetailInfoFragmentViewModel.filmInPendings(film)){
+                setPendingButtonRemove();
+            } else {
+                setPendingButtonAdd();
+            }
+            Glide.with(getContext()).load("https://image.tmdb.org/t/p/original/"+film.getPosterPath()).into(ivMoviePosterDetail);
+            tvMovieTitleDetail.setText(film.getTitle());
+            tvReleaseDateValueDetail.setText(film.getReleaseDate());
+            tvRatingAPIDetail.setText(String.valueOf(film.getVoteAverage()));
+            tvSynopsisValueDetail.setText(film.getOverview());
+            if(film.getTotalVotesMovieCheck()!=0){
+                tvRatingValueDetail.setText(String.valueOf(film.getTotalRatingMovieCheck()/film.getTotalVotesMovieCheck()));
+            }else{
+                tvRatingValueDetail.setText(String.valueOf(0));
+            }
+            String genresAsString = String.join(" - ", itemDetailInfoFragmentViewModel.getFilmGenres(film));
+            tvMovieGenresValue.setText(genresAsString);
         });
     }
 
@@ -190,23 +174,6 @@ public class ItemDetailInfoFragment extends Fragment {
     private void setPendingButtonAdd() {
         bTogglePendingDetail.setText(R.string.detail_add_pendant);
         bTogglePendingDetail.setBackgroundColor(ContextCompat.getColor(getContext(), R.color.red_widgets));
-    }
-
-    /**
-     * Consulta las listas que mantienen la información viva del usuario respecto a sus películas favoritas para determinar si está o no
-     * marcada como tal.
-     * @return True si la película está marcada como favorita o False en caso contrario
-     */
-    private boolean filmInFavorites(){
-        return repository.getUserFavoritesFilms().get(film.getId()) != null;
-    }
-
-    /**
-     * Consulta la información viva del usuario respecto a sus películas pendientes y determina la presencia de la película en cuestión (film)
-     * @return True si la película está marcada como pendiente o False en caso contrario
-     */
-    private boolean filmInPendings(){
-        return repository.getUserPendingsFilms().get(film.getId()) != null;
     }
 
     @Override

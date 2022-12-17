@@ -46,12 +46,7 @@ public class FilmAdapter extends RecyclerView.Adapter<FilmAdapter.filmsAdapterVi
         holder.title.setText(filmList.get(position).getTitle());
         Glide.with(holder.image.getContext()).load("https://image.tmdb.org/t/p/original/"+filmList.get(position).getPosterPath()).into(holder.image);
         holder.date.setText(filmList.get(position).getReleaseDate().split("-")[0]);
-        holder.itemView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                filmListener.onFilmSelected(filmList.get(position));
-            }
-        });
+        holder.itemView.setOnClickListener(view -> filmListener.onFilmSelected(filmList.get(position)));
     }
 
     @Override
@@ -66,9 +61,9 @@ public class FilmAdapter extends RecyclerView.Adapter<FilmAdapter.filmsAdapterVi
 
         filmsAdapterViewHolder(View view) {
             super(view);
-            title = (TextView) view.findViewById(R.id.tvMovieTitle);
-            image = (ImageView) view.findViewById(R.id.ivMoviePoster);
-            date = (TextView) view.findViewById(R.id.tvMovieDate);
+            title = view.findViewById(R.id.tvMovieTitle);
+            image = view.findViewById(R.id.ivMoviePoster);
+            date = view.findViewById(R.id.tvMovieDate);
         }
     }
 

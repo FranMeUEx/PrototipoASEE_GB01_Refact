@@ -1,4 +1,4 @@
-package es.unex.prototipoasee.viewmodels;
+package es.unex.prototipoasee.viewModels;
 
 import androidx.lifecycle.ViewModel;
 

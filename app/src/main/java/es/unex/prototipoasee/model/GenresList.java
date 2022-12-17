@@ -9,7 +9,11 @@ public class GenresList {
 
     @SerializedName("genres")
     @Expose
-    private List<Genre> genres = null;
+    private List<Genre> genres;
+
+    public GenresList(List<Genre> list){
+        genres = list;
+    }
 
     public List<Genre> getGenres() {
         return genres;

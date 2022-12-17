@@ -5,7 +5,7 @@ import androidx.room.ForeignKey;
 import androidx.room.PrimaryKey;
 
 // Clase Comments
-@Entity(tableName = "Comments",foreignKeys = {@ForeignKey(entity = Films.class, parentColumns = "filmID", childColumns = "filmID", onDelete = ForeignKey.CASCADE),
+@Entity(tableName = "Comments",foreignKeys = {@ForeignKey(entity = Films.class, parentColumns = "filmID", childColumns = "filmID"),
                                             @ForeignKey(entity = User.class, parentColumns = "username", childColumns = "username", onDelete = ForeignKey.CASCADE)})
 public class Comments {
 
@@ -17,6 +17,14 @@ public class Comments {
     private String text;
 
     public Comments(String username, int filmID, String text) {
+        this.username = username;
+        this.filmID = filmID;
+        this.text = text;
+    }
+
+    // Constructor parametrizado para los test
+    public Comments(int commentid, String username, int filmID, String text) {
+        this.commentID = commentid;
         this.username = username;
         this.filmID = filmID;
         this.text = text;

@@ -7,25 +7,25 @@
 
     <fragment
         android:id="@+id/navigation_explore"
-        android:name="es.unex.prototipoasee.ui.explore.ExploreFragment"
+        android:name="es.unex.prototipoasee.fragments.ExploreFragment"
         android:label="@string/title_explore"
         tools:layout="@layout/fragment_explore" />
 
     <fragment
         android:id="@+id/navigation_favorites"
-        android:name="es.unex.prototipoasee.ui.favorites.FavoritesFragment"
+        android:name="es.unex.prototipoasee.fragments.FavoritesFragment"
         android:label="@string/title_favorites"
         tools:layout="@layout/fragment_favorites" />
 
     <fragment
         android:id="@+id/navigation_pendings"
-        android:name="es.unex.prototipoasee.ui.pendings.PendingsFragment"
+        android:name="es.unex.prototipoasee.fragments.PendingsFragment"
         android:label="@string/title_pendings"
         tools:layout="@layout/fragment_pendings" />
 
     <fragment
         android:id="@+id/navigation_profile"
-        android:name="es.unex.prototipoasee.ui.profile.ProfileFragment"
+        android:name="es.unex.prototipoasee.fragments.ProfileFragment"
         android:label="@string/title_profile"
         tools:layout="@layout/fragment_profile" />
 

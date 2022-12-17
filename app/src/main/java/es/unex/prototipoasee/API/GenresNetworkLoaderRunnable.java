@@ -6,7 +6,6 @@ import java.util.List;
 
 import es.unex.prototipoasee.model.Genre;
 import es.unex.prototipoasee.model.GenresList;
-import es.unex.prototipoasee.sharedInterfaces.OnFilmsLoadedListener;
 import es.unex.prototipoasee.sharedInterfaces.OnGenresLoadedListener;
 import es.unex.prototipoasee.support.AppExecutors;
 import retrofit2.Call;
@@ -48,12 +47,7 @@ public class GenresNetworkLoaderRunnable implements Runnable{
 
                 assert response.body() != null;
                 List<Genre> genres = response.body().getGenres();
-                AppExecutors.getInstance().mainThread().execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        onGenresLoadedListener.onGenresLoaded(genres);
-                    }
-                });
+                AppExecutors.getInstance().mainThread().execute(() -> onGenresLoadedListener.onGenresLoaded(genres));
             }
 
             @Override

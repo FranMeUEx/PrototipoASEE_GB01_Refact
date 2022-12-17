@@ -1,4 +1,4 @@
-package es.unex.prototipoasee.ui.profile;
+package es.unex.prototipoasee.fragments;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -12,12 +12,14 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
-import es.unex.prototipoasee.repository.UsersRepository;
+import es.unex.prototipoasee.AppContainer;
+import es.unex.prototipoasee.MyApplication;
 import es.unex.prototipoasee.R;
 import es.unex.prototipoasee.databinding.FragmentProfileBinding;
 import es.unex.prototipoasee.model.User;
-import es.unex.prototipoasee.room.FilmsDatabase;
+import es.unex.prototipoasee.viewModels.ProfileFragmentViewModel;
 
 public class ProfileFragment extends Fragment {
     private FragmentProfileBinding binding;
@@ -34,40 +36,30 @@ public class ProfileFragment extends Fragment {
     private TextView tvEmailValueProfile;
     private TextView tvPasswordValueProfile;
 
-    // Campo para trabajar con el Repositorio de Usuarios
-    UsersRepository usersRepository;
+    // Referencia al ViewModel
+    ProfileFragmentViewModel profileFragmentViewModel;
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
         binding = FragmentProfileBinding.inflate(inflater, container, false);
         View root = binding.getRoot();
 
-        FilmsDatabase db = FilmsDatabase.getInstance(getContext());
-        usersRepository = UsersRepository.getInstance(db.userDAO());
+        // Para el ViewModel
+        AppContainer appContainer = ((MyApplication) getActivity().getApplication()).appContainer;
+        profileFragmentViewModel = new ViewModelProvider(this, (ViewModelProvider.Factory) appContainer.factory).get(ProfileFragmentViewModel.class);
 
         getViewsReferences(root);
 
         updateUI();
 
         // Se hace click en el botón para mostrar la información de la App
-        ibAppInfo.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                profileListener.onInfoButtonPressed();
-            }
-        });
+        ibAppInfo.setOnClickListener(view -> profileListener.onInfoButtonPressed());
 
         // Se hace click en el botón para Cerrar sesión
-        bLogOut.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) { logOut(); }
-        });
+        bLogOut.setOnClickListener(view -> logOut());
 
         // Se hace click en el botón para Eliminar cuenta
-        bDeleteAccount.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {profileListener.onDeleteAccountButtonPressed();}
-        });
+        bDeleteAccount.setOnClickListener(view -> profileListener.onDeleteAccountButtonPressed());
 
         return root;
     }
@@ -105,14 +97,11 @@ public class ProfileFragment extends Fragment {
 
     private void updateUI(){
         loginPreferences = getActivity().getSharedPreferences(getActivity().getPackageName()+"_preferences", Context.MODE_PRIVATE);
-        User user = usersRepository.getUser(loginPreferences.getString("USERNAME", ""));
-        getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                tvUsernameValueProfile.setText(user.getUsername());
-                tvEmailValueProfile.setText(user.getEmail());
-                tvPasswordValueProfile.setText(user.getPassword());
-            }
+        User user = profileFragmentViewModel.getUser(loginPreferences.getString("USERNAME", ""));
+        getActivity().runOnUiThread(() -> {
+            tvUsernameValueProfile.setText(user.getUsername());
+            tvEmailValueProfile.setText(user.getEmail());
+            tvPasswordValueProfile.setText(user.getPassword());
         });
     }
 

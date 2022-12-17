@@ -1,7 +1,5 @@
 package es.unex.prototipoasee.activities;
 
-import androidx.activity.result.ActivityResult;
-import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
@@ -22,7 +20,7 @@ import com.google.android.material.snackbar.Snackbar;
 import es.unex.prototipoasee.AppContainer;
 import es.unex.prototipoasee.MyApplication;
 import es.unex.prototipoasee.R;
-import es.unex.prototipoasee.viewmodels.LoginActivityViewModel;
+import es.unex.prototipoasee.viewModels.LoginActivityViewModel;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -44,7 +42,7 @@ public class LoginActivity extends AppCompatActivity {
         setContentView(R.layout.activity_login);
         setTitle(R.string.login_bar_title);
 
-        // Para el View Model
+        // Para el ViewModel
         AppContainer appContainer = ((MyApplication) getApplication()).appContainer;
         loginActivityViewModel = new ViewModelProvider(this, (ViewModelProvider.Factory) appContainer.factory).get(LoginActivityViewModel.class);
 
@@ -57,12 +55,9 @@ public class LoginActivity extends AppCompatActivity {
         getViewsReferences();
 
         // Se presiona sobre la cadena de Registro
-        tvRegisterLogin.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                // Se inicia la actividad de RegisterActivity esperando que devuelva como resultado el nombre de usuario que se haya registrado
-                startRegisterActivityForResult();
-            }
+        tvRegisterLogin.setOnClickListener(view -> {
+            // Se inicia la actividad de RegisterActivity esperando que devuelva como resultado el nombre de usuario que se haya registrado
+            startRegisterActivityForResult();
         });
 
         // Se hace click al botón de Inicio de sesión
@@ -118,16 +113,13 @@ public class LoginActivity extends AppCompatActivity {
      */
     ActivityResultLauncher<Intent> registerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
-            new ActivityResultCallback<ActivityResult>() {
-                @Override
-                public void onActivityResult(ActivityResult result) {
-                    if (result.getResultCode() == RESULT_OK) {
-                        assert result.getData() != null;
-                        String username = result.getData().getExtras().get("USERNAME").toString();
-                        saveUserPreferences(username);
-                        Toast.makeText(LoginActivity.this, getString(R.string.auto_login) + " " + username, Toast.LENGTH_SHORT).show();
-                        startHomeActivity();
-                    }
+            result -> {
+                if (result.getResultCode() == RESULT_OK) {
+                    assert result.getData() != null;
+                    String username = result.getData().getExtras().get("USERNAME").toString();
+                    saveUserPreferences(username);
+                    Toast.makeText(LoginActivity.this, getString(R.string.auto_login) + " " + username, Toast.LENGTH_SHORT).show();
+                    startHomeActivity();
                 }
             });
 

@@ -8,9 +8,9 @@ import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.RecyclerView;
 
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,18 +25,15 @@ import com.bumptech.glide.Glide;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.util.ArrayList;
-import java.util.List;
 
-import es.unex.prototipoasee.API.FilmsNetworkDataSource;
-import es.unex.prototipoasee.repository.Repository;
-import es.unex.prototipoasee.support.AppExecutors;
+import es.unex.prototipoasee.AppContainer;
+import es.unex.prototipoasee.MyApplication;
 import es.unex.prototipoasee.R;
 import es.unex.prototipoasee.adapters.CommentAdapter;
 import es.unex.prototipoasee.sharedInterfaces.ItemDetailInterface;
 import es.unex.prototipoasee.model.Comments;
 import es.unex.prototipoasee.model.Films;
-import es.unex.prototipoasee.model.Rating;
-import es.unex.prototipoasee.room.FilmsDatabase;
+import es.unex.prototipoasee.viewModels.ItemDetailSocialFragmentViewModel;
 
 public class ItemDetailSocialFragment extends Fragment  {
 
@@ -50,26 +47,19 @@ public class ItemDetailSocialFragment extends Fragment  {
     private Button bAddRating;
     private NumberPicker npAddRating;
 
-    // Lista que mantiene la información viva acerca de los comentarios de la película
-    private List<Comments> commentList = new ArrayList<>();
-
     private ItemDetailInterface itemDetailInterface;
 
     private CommentAdapter commentAdapter;
 
-    Films film;
+    private Films film;
 
-    private Repository repository;
+    // Referencia al ViewModel
+    ItemDetailSocialFragmentViewModel itemDetailSocialFragmentViewModel;
 
-    SharedPreferences loginPreferences;
+    private SharedPreferences loginPreferences;
 
     public ItemDetailSocialFragment() {
         // Required empty public constructor
-    }
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
     }
 
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -77,21 +67,21 @@ public class ItemDetailSocialFragment extends Fragment  {
 
         loginPreferences = getActivity().getSharedPreferences(getActivity().getPackageName() + "_preferences", Context.MODE_PRIVATE);
 
-        FilmsDatabase db = FilmsDatabase.getInstance(getContext());
-        repository = Repository.getInstance(db.filmDAO(), db.favoritesDAO(), db.pendingsDAO(), db.commentDAO(), db.ratingDAO(), db.genreDAO(), db.filmsGenresListDAO(), FilmsNetworkDataSource.getInstance());
+        // Para el ViewModel
+        AppContainer appContainer = ((MyApplication) getActivity().getApplication()).appContainer;
+        itemDetailSocialFragmentViewModel = new ViewModelProvider(this, (ViewModelProvider.Factory) appContainer.factory).get(ItemDetailSocialFragmentViewModel.class);
 
         View v = inflater.inflate(R.layout.fragment_item_detail_social, container, false);
         View recyclerView = v.findViewById(R.id.social_comments);
         assert recyclerView != null;
-        commentAdapter = new CommentAdapter(commentList, loginPreferences.getString("USERNAME", ""), getContext());
+        commentAdapter = new CommentAdapter(new ArrayList<>(), loginPreferences.getString("USERNAME", ""), getContext());
         setupRecyclerView((RecyclerView) recyclerView);
 
         film = itemDetailInterface.getFilmSelected();
+        itemDetailSocialFragmentViewModel.changeFilm(film);
 
         // Se obtienen los datos y los comentarios más recientes de la película
-        repository.getFilmComments(film).observe(getActivity(), comments->{
-            commentAdapter.swap(comments);
-        });
+        itemDetailSocialFragmentViewModel.getComments().observe(getActivity(), comments-> commentAdapter.swap(comments));
 
         getViewsReferences(v);
         npAddRating.setMinValue(1);
@@ -99,26 +89,20 @@ public class ItemDetailSocialFragment extends Fragment  {
 
         updateUI();
 
-        bAddRating.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if(filmNotRated()){
-                    addRating(npAddRating.getValue());
-                }
+        bAddRating.setOnClickListener(view -> {
+            if(itemDetailSocialFragmentViewModel.filmNotRated(film)){
+                addRating(npAddRating.getValue());
             }
         });
 
-        ibSendComment.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                String commentBody = etCommentSocial.getText().toString();
-                if (!commentBody.equals("")) {
-                    addComment(commentBody);
-                    etCommentSocial.setText("");
-                } else {
-                    Snackbar.make(view, R.string.empty_comment, 2500)
-                            .show();
-                }
+        ibSendComment.setOnClickListener(view -> {
+            String commentBody = etCommentSocial.getText().toString();
+            if (!commentBody.equals("")) {
+                addComment(commentBody);
+                etCommentSocial.setText("");
+            } else {
+                Snackbar.make(view, R.string.empty_comment, 2500)
+                        .show();
             }
         });
         return v;
@@ -140,43 +124,33 @@ public class ItemDetailSocialFragment extends Fragment  {
     }
 
     private void updateUI() {
-        getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                tvMovieTitle.setText(film.getTitle());
-                tvMovieDate.setText(film.getReleaseDate().split("-")[0]);
-                updateRating();
-                Glide.with(getContext()).load("https://image.tmdb.org/t/p/original/" + film.getPosterPath()).into(ivMoviePoster);
-            }
+        getActivity().runOnUiThread(() -> {
+            tvMovieTitle.setText(film.getTitle());
+            tvMovieDate.setText(film.getReleaseDate().split("-")[0]);
+            updateRating();
+            Glide.with(getContext()).load("https://image.tmdb.org/t/p/original/" + film.getPosterPath()).into(ivMoviePoster);
         });
     }
 
     private void addComment(String commentBody) {
         Comments comment = new Comments(loginPreferences.getString("USERNAME", ""), film.getId(), commentBody);
-        repository.addComment(comment);
-    }
-
-    private boolean filmNotRated() {
-        return !repository.getUserRatedFilms().contains(film.getId());
+        itemDetailSocialFragmentViewModel.addComment(comment);
     }
 
     private void addRating(int rating){
 
-        repository.addUserRatedFilm(film, rating);
+        itemDetailSocialFragmentViewModel.addRating(film, rating);
 
         film.setTotalVotesMovieCheck(film.getTotalVotesMovieCheck()+1);
         film.setTotalRatingMovieCheck(film.getTotalRatingMovieCheck()+rating);
 
-        getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                tvRatingSocial.setText(Double.toString((double) film.getTotalRatingMovieCheck()/film.getTotalVotesMovieCheck()));
-                npAddRating.setEnabled(false);
-                npAddRating.setVisibility(getView().INVISIBLE);
-                bAddRating.setEnabled(false);
-                bAddRating.setVisibility(getView().INVISIBLE);
-                tvRatingSocial.setText(Double.toString(round((double) film.getTotalRatingMovieCheck()/film.getTotalVotesMovieCheck())));
-            }
+        getActivity().runOnUiThread(() -> {
+            tvRatingSocial.setText(Double.toString((double) film.getTotalRatingMovieCheck()/film.getTotalVotesMovieCheck()));
+            npAddRating.setEnabled(false);
+            npAddRating.setVisibility(getView().INVISIBLE);
+            bAddRating.setEnabled(false);
+            bAddRating.setVisibility(getView().INVISIBLE);
+            tvRatingSocial.setText(Double.toString(round((double) film.getTotalRatingMovieCheck()/film.getTotalVotesMovieCheck())));
         });
     }
 
@@ -186,7 +160,7 @@ public class ItemDetailSocialFragment extends Fragment  {
         } else {
             tvRatingSocial.setText("----");
         }
-        if (!filmNotRated()){
+        if (!itemDetailSocialFragmentViewModel.filmNotRated(film)){
             npAddRating.setEnabled(false);
             npAddRating.setVisibility(getView().INVISIBLE);
             bAddRating.setEnabled(false);

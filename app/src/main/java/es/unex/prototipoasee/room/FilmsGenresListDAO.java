@@ -1,7 +1,6 @@
 package es.unex.prototipoasee.room;
 
 import androidx.room.Dao;
-import androidx.room.Ignore;
 import androidx.room.Query;
 
 import java.util.List;
@@ -15,4 +14,7 @@ public interface FilmsGenresListDAO {
 
     @Query("SELECT name FROM FilmsGenresList fg JOIN Genres f ON (fg.genreID=f.genreID) WHERE filmID = (:filmid)")
     List<String> getAllFilmsGenresNames(int filmid);
+
+    @Query("DELETE FROM FilmsGenresList WHERE filmID=(:filmid)")
+    void deleteFilmGenre(int filmid);
 }

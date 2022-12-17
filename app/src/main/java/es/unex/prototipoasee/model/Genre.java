@@ -22,6 +22,15 @@ public class Genre implements Comparable<Genre> {
     @Expose
     private String name;
 
+    public Genre(){
+
+    }
+
+    public Genre(int genreID, String name){
+        this.id = genreID;
+        this.name = name;
+    }
+
     public Integer getId() {
         return id;
     }

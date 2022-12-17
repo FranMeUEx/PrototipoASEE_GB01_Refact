@@ -1,16 +1,15 @@
 package es.unex.prototipoasee.room;
 
-import static androidx.room.OnConflictStrategy.IGNORE;
 import static androidx.room.OnConflictStrategy.REPLACE;
 
 import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
+import androidx.room.Delete;
 import androidx.room.Insert;
 import androidx.room.Query;
 import androidx.room.Update;
 
 import java.util.List;
-import java.util.Set;
 
 import es.unex.prototipoasee.model.Films;
 
@@ -20,14 +19,17 @@ public interface FilmDAO {
     @Insert(onConflict = REPLACE)
     void insertAllFilms(List<Films> filmsList);
 
+    @Insert
+    void insertFilm(Films film);
+
+    @Delete
+    void deleteFilm(Films film);
+
     @Update
     void updateFilm(Films film);
 
     @Query("SELECT * FROM Films WHERE filmID = (:filmid)")
     Films getFilm(int filmid);
-
-    @Query("SELECT * FROM Films WHERE filmID IN (:filmids)")
-    List<Films> getFilmsByID(List<Integer> filmids);
 
     @Query("SELECT * FROM Films")
     LiveData<List<Films>> getAllFilms();

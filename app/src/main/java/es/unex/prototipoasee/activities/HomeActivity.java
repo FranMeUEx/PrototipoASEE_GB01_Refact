@@ -6,14 +6,13 @@ import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
 
-import androidx.activity.result.ActivityResult;
-import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatTextView;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
@@ -21,36 +20,36 @@ import androidx.navigation.ui.NavigationUI;
 
 import java.util.ArrayList;
 
-import es.unex.prototipoasee.API.FilmsNetworkDataSource;
-import es.unex.prototipoasee.repository.Repository;
+import es.unex.prototipoasee.AppContainer;
+import es.unex.prototipoasee.MyApplication;
 import es.unex.prototipoasee.R;
 import es.unex.prototipoasee.adapters.FilmAdapter;
 import es.unex.prototipoasee.adapters.FilmListAdapter;
 import es.unex.prototipoasee.model.Films;
 
 import es.unex.prototipoasee.databinding.ActivityMainBinding;
-import es.unex.prototipoasee.room.FilmsDatabase;
-import es.unex.prototipoasee.ui.profile.ProfileFragment;
+import es.unex.prototipoasee.fragments.ProfileFragment;
+import es.unex.prototipoasee.viewModels.HomeActivityViewModel;
 
 public class HomeActivity extends AppCompatActivity implements ProfileFragment.ProfileListener, FilmAdapter.FilmListener, FilmListAdapter.ActionButtonListener {
 
     private ActivityMainBinding binding;
 
-    // Campo para trabajar con el Repositorio
-    private Repository repository;
+    // Referencia al ViewModel
+    HomeActivityViewModel homeActivityViewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Se instancia el Repositorio
-        FilmsDatabase db = FilmsDatabase.getInstance(this);
-        repository = Repository.getInstance(db.filmDAO(), db.favoritesDAO(), db.pendingsDAO(), db.commentDAO(), db.ratingDAO(), db.genreDAO(), db.filmsGenresListDAO(), FilmsNetworkDataSource.getInstance());
-        repository.getUserFilmData(getSharedPreferences(getPackageName()+"_preferences", Context.MODE_PRIVATE).getString("USERNAME", ""));
+        // Para el ViewModel
+        AppContainer appContainer = ((MyApplication) getApplication()).appContainer;
+        homeActivityViewModel = new ViewModelProvider(this, (ViewModelProvider.Factory) appContainer.factory).get(HomeActivityViewModel.class);
+
+        homeActivityViewModel.getUserFilmData(getSharedPreferences(getPackageName()+"_preferences", Context.MODE_PRIVATE).getString("USERNAME", ""));
 
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-        //BottomNavigationView navView = findViewById(R.id.nav_view);
 
         //Passing each menu ID as a set of Ids because each
         //menu should be considered as top level destinations.
@@ -139,14 +138,11 @@ public class HomeActivity extends AppCompatActivity implements ProfileFragment.P
      */
     ActivityResultLauncher<Intent> deleteAccountLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
-            new ActivityResultCallback<ActivityResult>() {
-                @Override
-                public void onActivityResult(ActivityResult result) {
-                    if (result.getResultCode() == RESULT_OK) {
-                        Intent intent = new Intent(HomeActivity.this, LoginActivity.class);
-                        startActivity(intent);
-                        finish();
-                    }
+            result -> {
+                if (result.getResultCode() == RESULT_OK) {
+                    Intent intent = new Intent(HomeActivity.this, LoginActivity.class);
+                    startActivity(intent);
+                    finish();
                 }
             });
 
@@ -163,23 +159,13 @@ public class HomeActivity extends AppCompatActivity implements ProfileFragment.P
 
     @Override
     public void onFavButtonPressed(Films film, FilmListAdapter filmListAdapter) {
-        repository.removeUserFavoriteFilm(film);
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                filmListAdapter.swap(new ArrayList<>(repository.getUserFavoritesFilms().values()));
-            }
-        });
+        homeActivityViewModel.removeUserFavoriteFilm(film);
+        runOnUiThread(() -> filmListAdapter.swap(new ArrayList<>(homeActivityViewModel.getUserFavoriteFilms())));
     }
 
     @Override
     public void onPendingButtonPressed(Films film, FilmListAdapter filmListAdapter) {
-        repository.removeUserPedingFilm(film);
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                filmListAdapter.swap(new ArrayList<>(repository.getUserPendingsFilms().values()));
-            }
-        });
+        homeActivityViewModel.removeUserPendingFilm(film);
+        runOnUiThread(() -> filmListAdapter.swap(new ArrayList<>(homeActivityViewModel.getUserPendingFilms())));
     }
 }
